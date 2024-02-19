@@ -1,0 +1,5 @@
+# /notebooks*
+# ignore any files in the tmp directory
+/tmp*
+# ignore tracking of output files
+*pyc
