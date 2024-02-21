@@ -13,6 +13,7 @@ import json
 import argparse
 import datetime
 import shutil
+import yaml
 
 def parse_arguments():
     """
@@ -48,75 +49,56 @@ def parse_arguments():
     # Return dictionary of arguments
     return arguments
 
-
 class ConfigParser:
     """
-    This class parses the metadata file (either JSON or CSV format) and extracts the relevant information.
+    This class parses the metadata file in YAML format and extracts the relevant information.
     """
 
     def __init__(self, metadata_file):
-        """
-        Initialize the ConfigParser object.
-
-        Parameters:
-        - metadata_file (str): Path to the metadata file.
-        """
         self.metadata_file = metadata_file
-        self.animal_ids = None
-        self.group = None
+        # Initialize variables to store the parsed data
         self.experiment = None
-        self.input_directory = None
-        self.output_directory = None
-        self.camera_directory = None
+        self.animal_ids = []  # List of animal IDs
+        self.group = {}  # Mapping of animal_id to Group
+        self.sessions_to_plot = {}  # Mapping of animal_id to Sessions_to_plot
+        self.input_directory = ''
+        self.output_directory = ''
+        self.camera_directory = ''
+        # Call the parse function upon initialization
+        self._parse_yaml()
 
     def parse_metadata(self):
         """
-        Parses the metadata file based on its extension (either '.json' or '.csv').
+        Parses the metadata file based on its extension (expecting '.yml' or '.yaml').
 
         Raises:
         - ValueError: If the file format is not supported.
         """
-        # Extract file extension
-        file_extension = os.path.splitext(self.metadata_file)[1]
-
-        if file_extension == '.json':
-            self._parse_json()
-        elif file_extension == '.csv':
-            self._parse_csv()
+        file_extension = os.path.splitext(self.metadata_file)[1].lower()
+        
+        if file_extension in ['.yml', '.yaml']:
+            self._parse_yaml()
         else:
             raise ValueError(f"Unsupported metadata file format: {file_extension}")
 
-    def _parse_json(self):
+    def _parse_yaml(self):
         """
-        Parses the metadata from a JSON file.
+        Parses the metadata from a YAML file.
         """
         with open(self.metadata_file, 'r') as file:
-            metadata = json.load(file)
+            metadata = yaml.safe_load(file)
 
-        self.animal_ids = metadata.get("Animals")
-        self.group = metadata.get("Group")  # optional
-        self.experiment = metadata.get("Experiment")  # optional
-        self.input_directory = metadata.get("Path_To_Raw_Data")
-        self.output_directory = metadata.get("Output_Folder")
-        self.camera_directory = metadata.get("Camera_Folder")
+        # Parse data based on the structure provided by the YAML content
+        self.experiment = metadata.get("Experiment", "DefaultExperiment")
+        self.input_directory = metadata.get("Path_To_Raw_Data", "")
+        self.output_directory = metadata.get("Output_Folder", "")
+        self.camera_directory = metadata.get("Camera_Folder", "")
 
-    def _parse_csv(self):
-        """
-        Parses the metadata from a CSV file.
-        """
-        metadata = pd.read_csv(self.metadata_file)
-
-        self.animal_ids = metadata['Animals'].tolist()
-        
-        # Check for optional fields before accessing
-        if 'Group' in metadata:
-            self.group = metadata['Group'].tolist()
-        if 'Experiment' in metadata:
-            self.experiment = metadata['Experiment'][0]
-        
-        self.input_directory = metadata.get('Path_To_Raw_Data')[0]
-        self.output_directory = metadata.get('Output_Folder')[0]
-        self.camera_directory = metadata.get('Camera_Folder')[0]
+        # Process each animal's data to populate animal_ids, group, and sessions_to_plot
+        animals_data = metadata.get("Animals", {})
+        self.animal_ids = list(animals_data.keys())
+        self.group = {animal_id: animal_data.get('Group', 'Unknown') for animal_id, animal_data in animals_data.items()}
+        self.sessions_to_plot = {animal_id: animal_data.get('Sessions_to_plot', []) for animal_id, animal_data in animals_data.items()}
 
 
 

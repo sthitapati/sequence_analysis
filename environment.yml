@@ -3,13 +3,14 @@ channels:
   - defaults
   - conda-forge
 dependencies:
+  - python
   - pip
-  - pip:
-    - matplotlib
-    - numpy
-    - pandas
-    - plotly
-    - scipy
-    - seaborn
-    - statsmodels
-    - ipykernel
+  - pyyaml
+  - matplotlib
+  - numpy
+  - pandas
+  - plotly
+  - scipy
+  - seaborn
+  - statsmodels
+  - ipykernel
