@@ -1,3 +1,4 @@
+import os
 from utils.preprocesser import *
 from utils.process_session import *
 
@@ -15,15 +16,14 @@ def main():
     # Process the animal data
     process_animal_data(animal_ids= metadata.animal_ids,
                         input_directory=metadata.input_directory,
-                        output_directory=metadata.output_directory,
+                        output_directory=os.path.join(metadata.output_directory, metadata.experiment),
                         camera_directory=metadata.camera_directory,
                         replace_existing=arguments['replace']
                         )
     
     # combine the preprocessed data and add additional variables from settings to make it analysis friendly
-    process_sessions(animal_ids = metadata.animal_ids, 
-                     groups = metadata.group, 
-                     output_directory = metadata.output_directory
+    process_sessions(animals_groups= metadata.group, 
+                     output_directory = os.path.join(metadata.output_directory, metadata.experiment)
                      )
 
 if __name__ == "__main__":

@@ -64,6 +64,8 @@ class ConfigParser:
         self.input_directory = ''
         self.output_directory = ''
         self.camera_directory = ''
+        self.animals_to_exclude_from_plotting = []
+        self.opto_sessions = {}
         # Call the parse function upon initialization
         self._parse_yaml()
 
@@ -93,13 +95,14 @@ class ConfigParser:
         self.input_directory = metadata.get("Path_To_Raw_Data", "")
         self.output_directory = metadata.get("Output_Folder", "")
         self.camera_directory = metadata.get("Camera_Folder", "")
-
         # Process each animal's data to populate animal_ids, group, and sessions_to_plot
         animals_data = metadata.get("Animals", {})
         self.animal_ids = list(animals_data.keys())
         self.group = {animal_id: animal_data.get('Group', 'Unknown') for animal_id, animal_data in animals_data.items()}
         self.sessions_to_plot = {animal_id: animal_data.get('Sessions_to_plot', []) for animal_id, animal_data in animals_data.items()}
 
+        self.animals_to_exclude_from_plotting = metadata.get("Animals_to_exclude_from_plotting", [])
+        self.opto_sessions = metadata.get("Opto_Settings", [])
 
 
 ##############################################################################################################

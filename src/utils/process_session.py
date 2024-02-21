@@ -93,6 +93,10 @@ def get_session_details(output_folder, current_animal_id):
         with open(settings_file_path, 'r') as f:
             current_settings = json.load(f)
 
+        # Ensure the 'opto_session' column exists and is of boolean type
+        if 'opto_session' not in sessions_df.columns:
+            sessions_df['opto_session'] = False  # This initializes the column with a boolean dtype    
+
         if current_settings['OptoStim'] == 1:
             sessions_df.loc[session_id, 'opto_session'] = True
         else:
@@ -101,15 +105,6 @@ def get_session_details(output_folder, current_animal_id):
         sessions_df.loc[session_id, 'experiment_type'] = current_settings['ExperimentType']
 
     return sessions_df
-
-# for testing
-# Output_Folder = "/home/sthitapati/Documents/sequence_data/output"
-# Animals = ["SP111", "SP112"]
-# current_animal_id = Animals[1]
-# # sessions = os.listdir(os.path.join(Output_Folder, current_animal_id, 'Preprocessed'))
-
-# sessions_df = get_session_settings(Output_Folder, current_animal_id)
-# print(sessions_df)
 
 
 
@@ -210,21 +205,18 @@ def process_transition_data(sessions_df, output_folder, current_animal_id, curre
 # function to loop through all animals and analyse the data given the metadata ######
 #####################################################################################################################################
 
-def process_sessions(animal_ids, groups, output_directory):
+def process_sessions(animals_groups, output_directory):
     """
-    This function processes data for all animals in the given list.
-    It retrieves session settings for each animal, processes transition data and saves the output.
+    This function processes data for all animals specified in the animals_groups dictionary.
+    It retrieves session settings for each animal, processes transition data, and saves the output.
 
     Parameters:
-    animal_ids (list): List of animal IDs.
-    group_info (list): Corresponding list of groups for the animals.
-    raw_data_directory (str): The path of the directory where the raw data resides.
-    processed_data_directory (str): The path of the directory where the processed data will be saved.
-    camera_data_directory (str): The path of the directory where the camera data resides.
+    animals_groups (dict): Dictionary where keys are animal IDs and values are their corresponding groups.
+    output_directory (str): The path of the directory where the processed data will be saved.
     """
-    for animal_id, group in zip(animal_ids, groups):
+    for animal_id, group in animals_groups.items():
         # Print a message to indicate progress
-        print(f"processing all sessions of animal {animal_id} from group {group}.")
+        print(f"Processing all sessions of animal {animal_id} from group {group}.")
 
         # Get session details
         session_info_df = get_session_details(output_directory, animal_id)
@@ -237,7 +229,8 @@ def process_sessions(animal_ids, groups, output_directory):
                                                           calculate_cumulative_trial_id)
 
         # Print a message to indicate completion
-        print(f"combining all sessions for animal {animal_id} from group {group} and adding useful columns.")
+        print(f"Combining all sessions for animal {animal_id} from group {group} and adding useful columns.")
 
     print("Processing of all animals is complete.")
+
 
