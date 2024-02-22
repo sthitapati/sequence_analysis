@@ -102,6 +102,110 @@ def get_session_details(output_folder, current_animal_id):
         else:
             sessions_df.loc[session_id, 'opto_session'] = False
 
+        
+        # Ensure the 'stim_port' column exists and is of string type
+        if 'stim_port' not in sessions_df.columns:
+            sessions_df['stim_port'] = None
+        
+        if current_settings['OptoStim'] == 1:
+            sessions_df.loc[session_id, 'stim_port'] = current_settings['StimPoke']
+        else:
+            sessions_df.loc[session_id, 'stim_port'] = None
+
+        # ensure the 'opto_chance' column exists and is of numeric type
+        if 'opto_chance' not in sessions_df.columns:
+            sessions_df['opto_chance'] = None
+        
+        if current_settings['OptoStim'] == 1:
+            sessions_df.loc[session_id, 'opto_chance'] = current_settings['OptoChance']
+        else:
+            sessions_df.loc[session_id, 'opto_chance'] = None
+
+        # Ensure the 'pulse_duration' column exists and is of numeric type
+        if 'pulse_duration' not in sessions_df.columns:
+            sessions_df['pulse_duration'] = None
+        
+        if current_settings['OptoStim'] == 1:
+            sessions_df.loc[session_id, 'pulse_duration'] = current_settings['PulseDuration']
+        else:
+            sessions_df.loc[session_id, 'pulse_duration'] = None
+
+        # Ensure the 'pulse_interval' column exists and is of numeric type
+        if 'pulse_interval' not in sessions_df.columns:
+            sessions_df['pulse_interval'] = None
+        
+        if current_settings['OptoStim'] == 1:
+            sessions_df.loc[session_id, 'pulse_interval'] = current_settings['PulseInterval']
+        else:
+            sessions_df.loc[session_id, 'pulse_interval'] = None
+        
+        # Ensure the 'train_duration' column exists and is of numeric type
+        if 'train_duration' not in sessions_df.columns:
+            sessions_df['train_duration'] = None
+        
+        if current_settings['OptoStim'] == 1:
+            sessions_df.loc[session_id, 'train_duration'] = current_settings['TrainDuration']
+        else:
+            sessions_df.loc[session_id, 'train_duration'] = None
+
+        # Ensure the 'train_delay' column exists and is of numeric type
+        if 'train_delay' not in sessions_df.columns:
+            sessions_df['train_delay'] = None
+        
+        if current_settings['OptoStim'] == 1:
+            sessions_df.loc[session_id, 'train_delay'] = current_settings['TrainDelay']
+        else:
+            sessions_df.loc[session_id, 'train_delay'] = None
+
+             
+        # Ensure the 'variable_train_delay' column exists and is of boolean type
+        if 'variable_train_delay' not in sessions_df.columns:
+            sessions_df['variable_train_delay'] = False  # This initializes the column with a boolean dtype
+
+        if current_settings['OptoStim'] == 1 and current_settings['VariableTrainDelay'] == 1:
+            sessions_df.loc[session_id, 'variable_train_delay'] = current_settings['VariableTrainDelay']
+        else:
+            sessions_df.loc[session_id, 'variable_train_delay'] = False
+
+        # Ensure the 'muVariableDelay' column exists and is of numeric type
+        if 'mu_variable_delay' not in sessions_df.columns:
+            sessions_df['mu_variable_delay'] = None
+        
+        if current_settings['OptoStim'] == 1 and current_settings['VariableTrainDelay'] == 1:
+            sessions_df.loc[session_id, 'mu_variable_delay'] = current_settings['muVariableDelay']
+        else:
+            sessions_df.loc[session_id, 'mu_variable_delay'] = None
+
+        # Ensure the 'sigmaVariableDelay' column exists and is of numeric type
+        if 'sigma_variable_delay' not in sessions_df.columns:
+            sessions_df['sigma_variable_delay'] = None
+        
+        if current_settings['OptoStim'] == 1 and current_settings['VariableTrainDelay'] == 1:
+            sessions_df.loc[session_id, 'sigma_variable_delay'] = current_settings['sigmaVariableDelay']
+        else:
+            sessions_df.loc[session_id, 'sigma_variable_delay'] = None
+
+        # Ensure the 'lowerBoundVariableDelay' column exists and is of numeric type
+        if 'lower_bound_variableDelay' not in sessions_df.columns:
+            sessions_df['lower_bound_variableDelay'] = None
+        
+        if current_settings['OptoStim'] == 1 and current_settings['VariableTrainDelay'] == 1:
+            sessions_df.loc[session_id, 'lower_bound_variableDelay'] = current_settings['lowerBoundVariableDelay']
+        else:
+            sessions_df.loc[session_id, 'lower_bound_variableDelay'] = None
+
+        # Ensure the 'upperBoundVariableDelay' column exists and is of numeric type
+        if 'upper_bound_variableDelay' not in sessions_df.columns:
+            sessions_df['upper_bound_variableDelay'] = None
+        
+        if current_settings['OptoStim'] == 1 and current_settings['VariableTrainDelay'] == 1:
+            sessions_df.loc[session_id, 'upper_bound_variableDelay'] = current_settings['upperBoundVariableDelay']
+        else:
+            sessions_df.loc[session_id, 'upper_bound_variableDelay'] = None
+
+        # Ensure the 'experiment_type' column exists and is of string type
+        if 'experiment_type' not in sessions_df.columns:
+            sessions_df['experiment_type'] = None
         sessions_df.loc[session_id, 'experiment_type'] = current_settings['ExperimentType']
 
     return sessions_df
@@ -220,6 +324,10 @@ def process_sessions(animals_groups, output_directory):
 
         # Get session details
         session_info_df = get_session_details(output_directory, animal_id)
+        # save the session_info_df to a csv file
+        # make sure all empty cells are filled with 'NaN' to avoid any issues with excel
+        session_info_df = session_info_df.fillna('NaN')
+        session_info_df.to_csv(os.path.join(output_directory, animal_id, f'{animal_id}_session_info.csv'), index=False)
 
         # Process transition data for the current animal
         all_transition_data_df = process_transition_data(session_info_df, 
