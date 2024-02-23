@@ -599,74 +599,38 @@ def generate_map(GUI, GUIMeta):
 def handle_opto_stim_data(behavior_data, trial_settings, session_index, trial_ids):
     """
     Aligns optostim data with trial data including pulse duration and delay.
-
-    Args:
-        behavior_data (dict): The behavior data dictionary.
-        trial_settings (dict): The trial settings dictionary.
-        session_index (int): The current session index.
-        trial_ids (list): List of trial ids.
-
-    Returns:
-        Tuple: Contains lists of aligned optostim trial data, port data, pulse duration, and pulse delay respectively.
     """
-    
-    # Initialize aligned data lists
-    optotrials_aligned = []
-    optotrials_port_aligned = []
-    optotrials_pulse_duration = []
-    optotrials_pulse_delay = []
-    optotrials_variable_delay = []
+    # Initialize with NaNs upfront to ensure consistency in output lengths
+    optotrials_aligned = [float('nan')] * len(trial_ids)
+    optotrials_port_aligned = [float('nan')] * len(trial_ids)
+    optotrials_pulse_duration = [float('nan')] * len(trial_ids)
+    optotrials_pulse_delay = [float('nan')] * len(trial_ids)
+    optotrials_variable_delay = [float('nan')] * len(trial_ids)
 
-    # Check if OptoStim was enabled
-    if trial_settings['GUI']['OptoStim'] == 1:
+    # Initialize variables to None
+    optotrials = port_stimulated_data = pulse_duration = pulse_delay = variable_delay = None
 
-        # Get the optotrials, port_stimulated_data, opto_duration, and opto_delay
-        optotrials = behavior_data[session_index]['SessionData']['SessionVariables']['OptoStim']
-        port_stimulated_data = behavior_data[session_index]['SessionData']['SessionVariables']['PortStimulated']
-        pulse_duration = behavior_data[session_index]['SessionData']['SessionVariables']['OptoDuration']
-        pulse_delay = behavior_data[session_index]['SessionData']['SessionVariables']['OptoDelay']
-        variable_delay = trial_settings['GUI']['VariableTrainDelay']
-        
-        # Initialize trial index
-        trial_idx = 0
+    if trial_settings['GUI'].get('OptoStim', 0) == 1:
+        session_variables = behavior_data[session_index]['SessionData']['SessionVariables']
+        # Assign data if available
+        optotrials = session_variables.get('OptoStim', [float('nan')] * len(trial_ids))
+        port_stimulated_data = session_variables.get('PortStimulated', [float('nan')] * len(trial_ids))
+        pulse_duration = session_variables.get('OptoDuration', [float('nan')] * len(trial_ids))
+        pulse_delay = session_variables.get('OptoDelay', [float('nan')] * len(trial_ids))
+        variable_delay = trial_settings['GUI'].get('VariableTrainDelay', float('nan'))
 
-        # Iterate over trial_ids
-        for i in range(len(trial_ids)):
-            # Update trial index when a new trial starts
-            if i != 0 and trial_ids[i] != trial_ids[i - 1]:
-                trial_idx += 1
+        for i, trial_id in enumerate(trial_ids):
+            # Assuming trial_ids are aligned with the indices for optotrials and other variables
+            optotrials_aligned[i] = optotrials[i] if i < len(optotrials) else float('nan')
+            optotrials_port_aligned[i] = port_stimulated_data[i] if i < len(port_stimulated_data) else float('nan')
+            optotrials_pulse_duration[i] = pulse_duration[i] if i < len(pulse_duration) else float('nan')
+            optotrials_pulse_delay[i] = pulse_delay[i] if i < len(pulse_delay) else float('nan')
+            # Assuming variable_delay is a session-wide setting, not trial-specific
+            optotrials_variable_delay[i] = variable_delay
 
-            # Check if current trial is an optotrial and trial index is within the optotrials length
-            if trial_idx < len(optotrials) and optotrials[trial_idx] == 1:
-                optotrials_aligned.append(1)
-
-                # Get the index of stimulated port for the current optotrial
-                stimulated_port_indices = np.where(port_stimulated_data[:, trial_idx] == 1)[0]
-                if stimulated_port_indices.size:
-                    optotrials_port_aligned.append(stimulated_port_indices[0] + 1)
-                else:
-                    optotrials_port_aligned.append(float('nan'))
-
-                # Append pulse duration and delay for the current optotrial
-                optotrials_pulse_duration.append(pulse_duration[trial_idx])
-                optotrials_pulse_delay.append(pulse_delay[trial_idx])
-                optotrials_variable_delay.append(variable_delay)
-            else:
-                # If not an optotrial, append NaN values
-                optotrials_aligned.append(float('nan'))
-                optotrials_port_aligned.append(float('nan'))
-                optotrials_pulse_duration.append(float('nan'))
-                optotrials_pulse_delay.append(float('nan'))
-                optotrials_variable_delay.append(float('nan'))
-    else:
-        # If OptoStim is not enabled, create NaN lists of the length of trial_ids
-        optotrials_aligned = [float('nan')] * len(trial_ids)
-        optotrials_port_aligned = [float('nan')] * len(trial_ids)
-        optotrials_pulse_duration = [float('nan')] * len(trial_ids)
-        optotrials_pulse_delay = [float('nan')] * len(trial_ids)
-        optotrials_variable_delay = [float('nan')] * len(trial_ids)
-
+    # Debugging prints removed for clarity
     return optotrials_aligned, optotrials_port_aligned, optotrials_pulse_duration, optotrials_pulse_delay, optotrials_variable_delay
+
 ### ------------------------------ ###
 ### transition data preprocessing  ###
 ### ------------------------------ ###
@@ -959,64 +923,69 @@ def handle_camera_data(absolute_timestamp_filepath, trial_ids, sorted_port_in_ti
     Returns:
     - Tuple[List[float], List[float], List[float], List[float]]: A tuple containing the aligned camera times for port in events, port out events, trial start events, and trial end events.
     """
-    
-    # Initialize lists to hold the camera timestamps aligned with behavioral events
-    camera_port_in_times = []
-    camera_port_out_times = []
-    camera_start_times = []
-    camera_end_times = []
+    try: 
+        # Initialize lists to hold the camera timestamps aligned with behavioral events
+        camera_port_in_times = []
+        camera_port_out_times = []
+        camera_start_times = []
+        camera_end_times = []
 
-    # Load and preprocess camera timestamps from the CSV file
-    camera_timestamps = pd.read_csv(absolute_timestamp_filepath, delimiter=' ', header=None)
-    camera_timestamps = camera_timestamps.drop(columns=[3])  # Drop the last column
-    camera_timestamps.columns = ['pin_state', 'timestamp', 'frame_number']
-    camera_timestamps['pin_state_bool'] = camera_timestamps['pin_state'] != camera_timestamps['pin_state'][0]
+        # Load and preprocess camera timestamps from the CSV file
+        camera_timestamps = pd.read_csv(absolute_timestamp_filepath, delimiter=' ', header=None)
+        camera_timestamps = camera_timestamps.drop(columns=[3])  # Drop the last column
+        camera_timestamps.columns = ['pin_state', 'timestamp', 'frame_number']
+        camera_timestamps['pin_state_bool'] = camera_timestamps['pin_state'] != camera_timestamps['pin_state'][0]
 
-    # Convert timestamps to seconds and uncycle
-    timestamp_array = camera_timestamps['timestamp'].values
-    timestamps_in_seconds_uncycled = convert_and_uncycle_timestamps(timestamp_array)
-    camera_timestamps['time_seconds'] = timestamps_in_seconds_uncycled
+        # Convert timestamps to seconds and uncycle
+        timestamp_array = camera_timestamps['timestamp'].values
+        timestamps_in_seconds_uncycled = convert_and_uncycle_timestamps(timestamp_array)
+        camera_timestamps['time_seconds'] = timestamps_in_seconds_uncycled
 
-    # Find TTL times within the camera timestamps
-    indices_before_high, high_indices, low_indices = find_trigger_indices(camera_timestamps)
+        # Find TTL times within the camera timestamps
+        indices_before_high, high_indices, low_indices = find_trigger_indices(camera_timestamps)
 
-    
-    behaviour_df = pd.DataFrame({
-        'trial_id': trial_ids,
-        'trial_start': aligned_trial_start_timestamps,
-        'trial_end': aligned_trial_end_timestamps, 
-        'port_in': sorted_port_in_times,
-        'port_out': sorted_port_out_times,
-        'port_reference': sorted_port_references
-    })
-
-    for trial_id in behaviour_df['trial_id'].unique():
-        trial_df = behaviour_df[behaviour_df['trial_id'] == trial_id].copy()
-        first_port_in_index = trial_df[trial_df['port_reference'] == 2].index[0]
-
-        # get camera_start_time for the trial by camera_timestamps['time_seconds'][low_indices[trial_id - 1]]
-        trial_start_camera = camera_timestamps['time_seconds'][low_indices[trial_id - 1]]
-        # repeat for len(trial_df) times to get the correct length
-        camera_start_times.extend([trial_start_camera] * len(trial_df))
         
-        # get camera_end_time for the trial by camera_timestamps['time_seconds'][indices_before_high[trial_id - 1]]
-        trial_end_camera = camera_timestamps['time_seconds'][indices_before_high[trial_id - 1]]
-        # repeat for len(trial_df) times to get the correct length
-        camera_end_times.extend([trial_end_camera] * len(trial_df))
+        behaviour_df = pd.DataFrame({
+            'trial_id': trial_ids,
+            'trial_start': aligned_trial_start_timestamps,
+            'trial_end': aligned_trial_end_timestamps, 
+            'port_in': sorted_port_in_times,
+            'port_out': sorted_port_out_times,
+            'port_reference': sorted_port_references
+        })
 
-        first_poke_in_time = trial_df.loc[first_port_in_index, 'port_in']
-        first_poke_in_camera = camera_timestamps['time_seconds'][low_indices[trial_id - 1]]
-        port_in_times_trial = trial_df['port_in'].values
-        relative_port_in_times = port_in_times_trial - first_poke_in_time
-        camera_port_in_time = first_poke_in_camera + relative_port_in_times
-        camera_port_in_times.extend(camera_port_in_time)
+        for trial_id in behaviour_df['trial_id'].unique():
+            trial_df = behaviour_df[behaviour_df['trial_id'] == trial_id].copy()
+            first_port_in_index = trial_df[trial_df['port_reference'] == 2].index[0]
 
-        port_out_times_trial = trial_df['port_out'].values
-        relative_port_out_times = port_out_times_trial - port_in_times_trial
-        camera_port_out_time = camera_port_in_time + relative_port_out_times
-        camera_port_out_times.extend(camera_port_out_time)          
-        
-    return camera_port_in_times, camera_port_out_times, camera_start_times, camera_end_times
+            # get camera_start_time for the trial by camera_timestamps['time_seconds'][low_indices[trial_id - 1]]
+            trial_start_camera = camera_timestamps['time_seconds'][low_indices[trial_id - 1]]
+            # repeat for len(trial_df) times to get the correct length
+            camera_start_times.extend([trial_start_camera] * len(trial_df))
+            
+            # get camera_end_time for the trial by camera_timestamps['time_seconds'][indices_before_high[trial_id - 1]]
+            trial_end_camera = camera_timestamps['time_seconds'][indices_before_high[trial_id - 1]]
+            # repeat for len(trial_df) times to get the correct length
+            camera_end_times.extend([trial_end_camera] * len(trial_df))
+
+            first_poke_in_time = trial_df.loc[first_port_in_index, 'port_in']
+            first_poke_in_camera = camera_timestamps['time_seconds'][low_indices[trial_id - 1]]
+            port_in_times_trial = trial_df['port_in'].values
+            relative_port_in_times = port_in_times_trial - first_poke_in_time
+            camera_port_in_time = first_poke_in_camera + relative_port_in_times
+            camera_port_in_times.extend(camera_port_in_time)
+
+            port_out_times_trial = trial_df['port_out'].values
+            relative_port_out_times = port_out_times_trial - port_in_times_trial
+            camera_port_out_time = camera_port_in_time + relative_port_out_times
+            camera_port_out_times.extend(camera_port_out_time)          
+            
+        return camera_port_in_times, camera_port_out_times, camera_start_times, camera_end_times
+    except Exception as e:
+        print(f"Error: {e}", 'returning empty lists')
+        # determine the length of the trial ids and return empty lists of the same length
+        length = len(trial_ids)
+        return [np.nan] * length, [np.nan] * length, [np.nan] * length, [np.nan] * length
 
 
 def get_video_timestamp_and_frame(absolute_timestamp_filepath, trial_ids, aligned_trial_start_timestamps, aligned_trial_end_timestamps) -> Tuple[List, List, List, List]:
@@ -1039,49 +1008,54 @@ def get_video_timestamp_and_frame(absolute_timestamp_filepath, trial_ids, aligne
             - The first list contains aligned trial start times with the camera data.
             - The second list contains aligned trial end times with the camera data.
     """
+    try:
+        # Load the raw camera timestamps from the specified file
+        camera_timestamps = pd.read_csv(absolute_timestamp_filepath, delimiter=' ', header=None)
+        camera_timestamps = camera_timestamps.drop(columns=[3])  # Assume the last column is not needed
+        camera_timestamps.columns = ['pin_state', 'timestamp', 'frame_number']
+        camera_timestamps['pin_state_bool'] = camera_timestamps['pin_state'] != camera_timestamps['pin_state'][0]
+
+        # Convert the raw timestamps to a more usable format (e.g., seconds) and handle any cycling issues
+        timestamp_array = camera_timestamps['timestamp'].values
+        timestamps_in_seconds_uncycled = convert_and_uncycle_timestamps(timestamp_array)
+        camera_timestamps['time_seconds'] = timestamps_in_seconds_uncycled
+
+        # Extract times when the TTL signal was high or low from the camera timestamps
+        indices_before_high, high_indices, low_indices = find_trigger_indices(camera_timestamps)
+
+        camera_trial_start_timestamps = []
+        camera_trial_end_timestamps = []
+        camera_trial_start_frames = []
+        camera_trial_end_frames = []
+        # unique trial ids
+        unique_trial_ids = np.unique(trial_ids)
+
+        # Align trial start and end times with camera timestamps
+        for trial_id in unique_trial_ids:
+            
+            # high_indices are indices when the trial starts
+            trial_start_index = high_indices[trial_id - 1]
+            trial_start_time = camera_timestamps['time_seconds'][trial_start_index]
+            trial_start_frame = camera_timestamps['frame_number'][trial_start_index]
+
+            # indices_before_high are indices when the trial ends
+            trial_end_index = indices_before_high[trial_id - 1]
+            trial_end_time = camera_timestamps['time_seconds'][trial_end_index]
+            trial_end_frame = camera_timestamps['frame_number'][trial_end_index]
+            
+
+            # Append the aligned times and frames to the respective lists
+            camera_trial_start_timestamps.append(trial_start_time)
+            camera_trial_end_timestamps.append(trial_end_time)
+            camera_trial_start_frames.append(trial_start_frame)
+            camera_trial_end_frames.append(trial_end_frame)
     
-    # Load the raw camera timestamps from the specified file
-    camera_timestamps = pd.read_csv(absolute_timestamp_filepath, delimiter=' ', header=None)
-    camera_timestamps = camera_timestamps.drop(columns=[3])  # Assume the last column is not needed
-    camera_timestamps.columns = ['pin_state', 'timestamp', 'frame_number']
-    camera_timestamps['pin_state_bool'] = camera_timestamps['pin_state'] != camera_timestamps['pin_state'][0]
-
-    # Convert the raw timestamps to a more usable format (e.g., seconds) and handle any cycling issues
-    timestamp_array = camera_timestamps['timestamp'].values
-    timestamps_in_seconds_uncycled = convert_and_uncycle_timestamps(timestamp_array)
-    camera_timestamps['time_seconds'] = timestamps_in_seconds_uncycled
-
-    # Extract times when the TTL signal was high or low from the camera timestamps
-    indices_before_high, high_indices, low_indices = find_trigger_indices(camera_timestamps)
-
-    camera_trial_start_timestamps = []
-    camera_trial_end_timestamps = []
-    camera_trial_start_frames = []
-    camera_trial_end_frames = []
-    # unique trial ids
-    unique_trial_ids = np.unique(trial_ids)
-
-    # Align trial start and end times with camera timestamps
-    for trial_id in unique_trial_ids:
-        
-        # high_indices are indices when the trial starts
-        trial_start_index = high_indices[trial_id - 1]
-        trial_start_time = camera_timestamps['time_seconds'][trial_start_index]
-        trial_start_frame = camera_timestamps['frame_number'][trial_start_index]
-
-        # indices_before_high are indices when the trial ends
-        trial_end_index = indices_before_high[trial_id - 1]
-        trial_end_time = camera_timestamps['time_seconds'][trial_end_index]
-        trial_end_frame = camera_timestamps['frame_number'][trial_end_index]
-        
-
-        # Append the aligned times and frames to the respective lists
-        camera_trial_start_timestamps.append(trial_start_time)
-        camera_trial_end_timestamps.append(trial_end_time)
-        camera_trial_start_frames.append(trial_start_frame)
-        camera_trial_end_frames.append(trial_end_frame)
-    
-    return camera_trial_start_timestamps, camera_trial_end_timestamps, camera_trial_start_frames, camera_trial_end_frames
+        return camera_trial_start_timestamps, camera_trial_end_timestamps, camera_trial_start_frames, camera_trial_end_frames
+    except Exception as e:
+        print(f"Error: {e}", 'returning empty lists')
+        # determine the length of the trial ids and return empty lists of the same length
+        length = len(np.unique(trial_ids))
+        return [np.nan] * length, [np.nan] * length, [np.nan] * length, [np.nan] * length
 
 
 ###################################################################################################

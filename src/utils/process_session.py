@@ -85,132 +85,44 @@ def get_session_details(output_folder, current_animal_id):
     sessions_df = sessions_df.reset_index(drop=True)
 
     # Append opto_session and experiment_type to sessions_df
-    for session_id in range (0, len(sessions_df)):
-        session = sessions_df.loc[session_id]['session']
+    for session_id in range(len(sessions_df)):
+        session = sessions_df.loc[session_id, 'session']
         session_path = os.path.join(output_folder, current_animal_id, 'Preprocessed', session)
 
         settings_file_path = os.path.join(session_path, 'settings.json')
         with open(settings_file_path, 'r') as f:
             current_settings = json.load(f)
 
-        # Ensure the 'opto_session' column exists and is of boolean type
-        if 'opto_session' not in sessions_df.columns:
-            sessions_df['opto_session'] = False  # This initializes the column with a boolean dtype    
+        # Initialize columns if they don't exist
+        for column_name in ['opto_session', 'stim_port', 'opto_chance', 'pulse_duration', 'pulse_interval',
+                            'train_duration', 'train_delay', 'variable_train_delay', 'mu_variable_delay',
+                            'sigma_variable_delay', 'lower_bound_variableDelay', 'upper_bound_variableDelay', 'experiment_type']:
+            if column_name not in sessions_df.columns:
+                if column_name == 'opto_session' or column_name == 'variable_train_delay':
+                    sessions_df[column_name] = False  # For boolean columns
+                else:
+                    sessions_df[column_name] = None  # For all other types
 
-        if current_settings['OptoStim'] == 1:
-            sessions_df.loc[session_id, 'opto_session'] = True
-        else:
-            sessions_df.loc[session_id, 'opto_session'] = False
+        opto_stim = current_settings.get('OptoStim', 0) == 1
+        variable_train_delay = current_settings.get('VariableTrainDelay', 0) == 1
 
-        
-        # Ensure the 'stim_port' column exists and is of string type
-        if 'stim_port' not in sessions_df.columns:
-            sessions_df['stim_port'] = None
-        
-        if current_settings['OptoStim'] == 1:
-            sessions_df.loc[session_id, 'stim_port'] = current_settings['StimPoke']
-        else:
-            sessions_df.loc[session_id, 'stim_port'] = None
+        # Assign values based on OptoStim status and use get() for safe key access
+        sessions_df.loc[session_id, 'opto_session'] = opto_stim
+        sessions_df.loc[session_id, 'stim_port'] = current_settings.get('StimPoke', None) if opto_stim else None
+        sessions_df.loc[session_id, 'opto_chance'] = current_settings.get('OptoChance', None) if opto_stim else None
+        sessions_df.loc[session_id, 'pulse_duration'] = current_settings.get('PulseDuration', None) if opto_stim else None
+        sessions_df.loc[session_id, 'pulse_interval'] = current_settings.get('PulseInterval', None) if opto_stim else None
+        sessions_df.loc[session_id, 'train_duration'] = current_settings.get('TrainDuration', None) if opto_stim else None
+        sessions_df.loc[session_id, 'train_delay'] = current_settings.get('TrainDelay', None) if opto_stim else None
+        sessions_df.loc[session_id, 'variable_train_delay'] = variable_train_delay if opto_stim else False
+        sessions_df.loc[session_id, 'mu_variable_delay'] = current_settings.get('muVariableDelay', None) if opto_stim and variable_train_delay else None
+        sessions_df.loc[session_id, 'sigma_variable_delay'] = current_settings.get('sigmaVariableDelay', None) if opto_stim and variable_train_delay else None
+        sessions_df.loc[session_id, 'lower_bound_variableDelay'] = current_settings.get('lowerBoundVariableDelay', None) if opto_stim and variable_train_delay else None
+        sessions_df.loc[session_id, 'upper_bound_variableDelay'] = current_settings.get('upperBoundVariableDelay', None) if opto_stim and variable_train_delay else None
+        sessions_df.loc[session_id, 'experiment_type'] = current_settings.get('ExperimentType', None)
 
-        # ensure the 'opto_chance' column exists and is of numeric type
-        if 'opto_chance' not in sessions_df.columns:
-            sessions_df['opto_chance'] = None
-        
-        if current_settings['OptoStim'] == 1:
-            sessions_df.loc[session_id, 'opto_chance'] = current_settings['OptoChance']
-        else:
-            sessions_df.loc[session_id, 'opto_chance'] = None
-
-        # Ensure the 'pulse_duration' column exists and is of numeric type
-        if 'pulse_duration' not in sessions_df.columns:
-            sessions_df['pulse_duration'] = None
-        
-        if current_settings['OptoStim'] == 1:
-            sessions_df.loc[session_id, 'pulse_duration'] = current_settings['PulseDuration']
-        else:
-            sessions_df.loc[session_id, 'pulse_duration'] = None
-
-        # Ensure the 'pulse_interval' column exists and is of numeric type
-        if 'pulse_interval' not in sessions_df.columns:
-            sessions_df['pulse_interval'] = None
-        
-        if current_settings['OptoStim'] == 1:
-            sessions_df.loc[session_id, 'pulse_interval'] = current_settings['PulseInterval']
-        else:
-            sessions_df.loc[session_id, 'pulse_interval'] = None
-        
-        # Ensure the 'train_duration' column exists and is of numeric type
-        if 'train_duration' not in sessions_df.columns:
-            sessions_df['train_duration'] = None
-        
-        if current_settings['OptoStim'] == 1:
-            sessions_df.loc[session_id, 'train_duration'] = current_settings['TrainDuration']
-        else:
-            sessions_df.loc[session_id, 'train_duration'] = None
-
-        # Ensure the 'train_delay' column exists and is of numeric type
-        if 'train_delay' not in sessions_df.columns:
-            sessions_df['train_delay'] = None
-        
-        if current_settings['OptoStim'] == 1:
-            sessions_df.loc[session_id, 'train_delay'] = current_settings['TrainDelay']
-        else:
-            sessions_df.loc[session_id, 'train_delay'] = None
-
-             
-        # Ensure the 'variable_train_delay' column exists and is of boolean type
-        if 'variable_train_delay' not in sessions_df.columns:
-            sessions_df['variable_train_delay'] = False  # This initializes the column with a boolean dtype
-
-        if current_settings['OptoStim'] == 1 and current_settings['VariableTrainDelay'] == 1:
-            sessions_df.loc[session_id, 'variable_train_delay'] = current_settings['VariableTrainDelay']
-        else:
-            sessions_df.loc[session_id, 'variable_train_delay'] = False
-
-        # Ensure the 'muVariableDelay' column exists and is of numeric type
-        if 'mu_variable_delay' not in sessions_df.columns:
-            sessions_df['mu_variable_delay'] = None
-        
-        if current_settings['OptoStim'] == 1 and current_settings['VariableTrainDelay'] == 1:
-            sessions_df.loc[session_id, 'mu_variable_delay'] = current_settings['muVariableDelay']
-        else:
-            sessions_df.loc[session_id, 'mu_variable_delay'] = None
-
-        # Ensure the 'sigmaVariableDelay' column exists and is of numeric type
-        if 'sigma_variable_delay' not in sessions_df.columns:
-            sessions_df['sigma_variable_delay'] = None
-        
-        if current_settings['OptoStim'] == 1 and current_settings['VariableTrainDelay'] == 1:
-            sessions_df.loc[session_id, 'sigma_variable_delay'] = current_settings['sigmaVariableDelay']
-        else:
-            sessions_df.loc[session_id, 'sigma_variable_delay'] = None
-
-        # Ensure the 'lowerBoundVariableDelay' column exists and is of numeric type
-        if 'lower_bound_variableDelay' not in sessions_df.columns:
-            sessions_df['lower_bound_variableDelay'] = None
-        
-        if current_settings['OptoStim'] == 1 and current_settings['VariableTrainDelay'] == 1:
-            sessions_df.loc[session_id, 'lower_bound_variableDelay'] = current_settings['lowerBoundVariableDelay']
-        else:
-            sessions_df.loc[session_id, 'lower_bound_variableDelay'] = None
-
-        # Ensure the 'upperBoundVariableDelay' column exists and is of numeric type
-        if 'upper_bound_variableDelay' not in sessions_df.columns:
-            sessions_df['upper_bound_variableDelay'] = None
-        
-        if current_settings['OptoStim'] == 1 and current_settings['VariableTrainDelay'] == 1:
-            sessions_df.loc[session_id, 'upper_bound_variableDelay'] = current_settings['upperBoundVariableDelay']
-        else:
-            sessions_df.loc[session_id, 'upper_bound_variableDelay'] = None
-
-        # Ensure the 'experiment_type' column exists and is of string type
-        if 'experiment_type' not in sessions_df.columns:
-            sessions_df['experiment_type'] = None
-        sessions_df.loc[session_id, 'experiment_type'] = current_settings['ExperimentType']
 
     return sessions_df
-
-
 
 # TODO - add a function to get the sessions with any arbitrary condition (e.g. experiment_type = 2_Experiment, or date = 2023-04-21, etc.)
 
@@ -269,6 +181,7 @@ def process_transition_data(sessions_df, output_folder, current_animal_id, curre
 
     for session in sessions_df['session']:
         transition_data_file_path = os.path.join(output_folder, current_animal_id, 'Preprocessed', session, 'PreProcessed_TransitionData.csv')
+        
         transition_data = pd.read_csv(transition_data_file_path)
 
         trial_ids_numpy = transition_data['trial_id'].to_numpy()
