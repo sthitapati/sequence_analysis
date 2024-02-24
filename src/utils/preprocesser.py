@@ -596,40 +596,61 @@ def generate_map(GUI, GUIMeta):
 ### handle data for optogenetics experiments ###
 ### ---------------------------------------- ###
 
-def handle_opto_stim_data(behavior_data, trial_settings, session_index, trial_ids):
+def handle_opto_stim_data(behavior_data, trial_settings, session_index, trial_ids): ## start here tomorrow
     """
-    Aligns optostim data with trial data including pulse duration and delay.
+    Aligns optostim data with trial data.
+
+    Args:
+        behavior_data (dict): The behavior data dictionary.
+        trial_settings (dict): The trial settings dictionary.
+        session_index (int): The current session index.
+        trial_ids (list): List of trial ids.
+
+    Returns:
+        List, List: Lists of aligned optostim trial data and port data respectively.
     """
-    # Initialize with NaNs upfront to ensure consistency in output lengths
-    optotrials_aligned = [float('nan')] * len(trial_ids)
-    optotrials_port_aligned = [float('nan')] * len(trial_ids)
-    optotrials_pulse_duration = [float('nan')] * len(trial_ids)
-    optotrials_pulse_delay = [float('nan')] * len(trial_ids)
-    optotrials_variable_delay = [float('nan')] * len(trial_ids)
+    
+    # Initialize aligned data lists
+    optotrials_aligned = []
+    optotrials_port_aligned = []
 
-    # Initialize variables to None
-    optotrials = port_stimulated_data = pulse_duration = pulse_delay = variable_delay = None
+    # Check if OptoStim was enabled
+    if trial_settings['GUI']['OptoStim'] == 1:
 
-    if trial_settings['GUI'].get('OptoStim', 0) == 1:
-        session_variables = behavior_data[session_index]['SessionData']['SessionVariables']
-        # Assign data if available
-        optotrials = session_variables.get('OptoStim', [float('nan')] * len(trial_ids))
-        port_stimulated_data = session_variables.get('PortStimulated', [float('nan')] * len(trial_ids))
-        pulse_duration = session_variables.get('OptoDuration', [float('nan')] * len(trial_ids))
-        pulse_delay = session_variables.get('OptoDelay', [float('nan')] * len(trial_ids))
-        variable_delay = trial_settings['GUI'].get('VariableTrainDelay', float('nan'))
+        # Get the optotrials and port_stimulated_data
+        optotrials = behavior_data[session_index]['SessionData']['SessionVariables']['OptoStim']
+        port_stimulated_data = behavior_data[session_index]['SessionData']['SessionVariables']['PortStimulated']
+        
+        # Initialize trial index
+        trial_idx = 0
 
-        for i, trial_id in enumerate(trial_ids):
-            # Assuming trial_ids are aligned with the indices for optotrials and other variables
-            optotrials_aligned[i] = optotrials[i] if i < len(optotrials) else float('nan')
-            optotrials_port_aligned[i] = port_stimulated_data[i] if i < len(port_stimulated_data) else float('nan')
-            optotrials_pulse_duration[i] = pulse_duration[i] if i < len(pulse_duration) else float('nan')
-            optotrials_pulse_delay[i] = pulse_delay[i] if i < len(pulse_delay) else float('nan')
-            # Assuming variable_delay is a session-wide setting, not trial-specific
-            optotrials_variable_delay[i] = variable_delay
+        # Iterate over trial_ids
+        for i in range(len(trial_ids)):
+            # Update trial index when a new trial starts
+            if i != 0 and trial_ids[i] != trial_ids[i - 1]:
+                trial_idx += 1
 
-    # Debugging prints removed for clarity
-    return optotrials_aligned, optotrials_port_aligned, optotrials_pulse_duration, optotrials_pulse_delay, optotrials_variable_delay
+            # Check if current trial is an optotrial and trial index is within the optotrials length
+            if trial_idx < len(optotrials) and optotrials[trial_idx] == 1:
+                optotrials_aligned.append(1)
+
+                # Get the index of stimulated port for the current optotrial
+                stimulated_port_indices = np.where(port_stimulated_data[:, trial_idx] == 1)[0]
+                # If stimulated port index exists, append it to the aligned port data list
+                if stimulated_port_indices.size:
+                    optotrials_port_aligned.append(stimulated_port_indices[0] + 1)
+                else:
+                    optotrials_port_aligned.append(float('nan'))
+            else:
+                # If not an optotrial, append NaN values
+                optotrials_aligned.append(float('nan'))
+                optotrials_port_aligned.append(float('nan'))
+    else:
+        # If OptoStim is not enabled, create NaN lists of the length of trial_ids
+        optotrials_aligned = [float('nan')] * len(trial_ids)
+        optotrials_port_aligned = [float('nan')] * len(trial_ids)
+
+    return optotrials_aligned, optotrials_port_aligned
 
 ### ------------------------------ ###
 ### transition data preprocessing  ###
@@ -1250,8 +1271,7 @@ def process_animal_data(
                 
                 
                 # handle optogenetic stimulation
-                optotrials_aligned, optotrials_port_aligned, optotrials_pulse_duration, optotrials_pulse_delay, optotrials_variable_delay = handle_opto_stim_data(behavior_data, trial_settings, 
-                                                                                                                                                                  session_index, trial_ids)
+                optotrials_aligned, optotrials_port_aligned= handle_opto_stim_data(behavior_data, trial_settings, session_index, trial_ids)
 
                 # Create empty lists to store intermediate rewards and LED intensities data for each trial
                 intermediate_rewards_data = []
@@ -1290,9 +1310,6 @@ def process_animal_data(
                         'reward_amounts_ports_1_2_3_4': aligned_intermediate_rewards,
                         'opto_condition': optotrials_aligned,
                         'opto_stimulated_port': optotrials_port_aligned,
-                        'variable_delay': optotrials_variable_delay,
-                        'opto_pulse_duration': optotrials_pulse_duration,
-                        'opto_pulse_delay': optotrials_pulse_delay,
                         'training_level': training_levels
                     }
                 )
@@ -1340,9 +1357,6 @@ def process_animal_data(
                         '2s_time_filter_in_in': in_in_filtered_transitions,
                         'opto_condition': optotrials_aligned[:-1],
                         'opto_stimulated_port': optotrials_port_aligned[:-1],
-                        'variable_delay': optotrials_variable_delay[:-1],
-                        'opto_pulse_duration': optotrials_pulse_duration[:-1],
-                        'opto_pulse_delay': optotrials_pulse_delay[:-1],
                         'training_level': training_levels[:-1],
                         'led_intensities_ports_2_3_4_5': aligned_led_intensities[:-1],
                         'reward_amounts_ports_1_2_3_4': aligned_intermediate_rewards[:-1],
