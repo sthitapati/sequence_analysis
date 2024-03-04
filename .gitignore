@@ -3,3 +3,6 @@
 /tmp*
 # ignore tracking of output files
 *pyc
+
+# anything that has test in the name
+*test*
