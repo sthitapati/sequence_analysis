@@ -1,0 +1,32 @@
+Experiment: DLS_GtACR
+Path_To_Raw_Data: /mnt/ceph/data/bpod_raw_data
+Camera_Folder: /mnt/ceph/projects/sequences/SP_FlyCap
+Output_Folder: /mnt/c/Users/sthit/OneDrive - University College London/Data/analysed_data/behaviour_output
+## TODO: chnage sessions_to_plot to a list of dates instead of session numbers format is YYYY-MM-DD
+Animals:
+    SP108:
+        Group: Control
+        Sessions_to_plot: [50, 51, 52, 53, 54, 55, 56, 57, 58]
+    SP110:
+        Group: Control
+        Sessions_to_plot: [50, 51, 52, 53, 54, 55, 56, 57, 58]
+    SP112:
+        Group: Control
+        Sessions_to_plot: [51, 52, 53, 54, 55, 56, 57, 58, 59]
+    SP148:
+        Group: Control
+        Sessions_to_plot: [32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]
+    SP150:
+        Group: Control
+        Sessions_to_plot: [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64] 
+    SP151:
+        Group: Control
+        Sessions_to_plot: [52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69]
+    SP153:
+        Group: Control
+        Sessions_to_plot: [24, 25, 26, 27, 28, 29, 30, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52]
+Animals_to_exclude_from_plotting: [SP150] # this is a list of animals to exclude from plotting for whatever reason
+# Opto_Settings is optional; to be used only if optogenetic stimulation was used
+Opto_Settings:
+    PulseDuration: 1.5
+
