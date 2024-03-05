@@ -146,6 +146,8 @@ def import_bpod_data_files(input_path: str) -> Tuple[Dict[int, Dict], int, List[
         # Check if the file is not the weird hidden file
         if file != '.DS_Store':
             # Load the '.mat' file and add it to the dictionary
+            # Debug print statement
+            print(f'Loading file: {file}')
             current_file = loadmat(input_path + file)
             behav_data[sessions] = current_file
             sessions += 1
@@ -1135,7 +1137,8 @@ def process_animal_data(
 
         # Construct the path for the current animal's data
         current_input_path = os.path.join(input_directory, current_animal_id, 'Sequence_Automated', 'Session Data/')
-
+        # Debug print statement
+        print(f"Current input path: {current_input_path}")
         # Load Behavioural data using the import_bpod_data_files function
         behavior_data, total_sessions, path, session_dates = import_bpod_data_files(current_input_path)
 
