@@ -1,7 +1,7 @@
 Experiment: DLS_GtACR_opto-inhibition
 Path_To_Raw_Data: /mnt/ceph/data/bpod_raw_data
 Camera_Folder: /mnt/ceph/projects/sequences/SP_FlyCap
-Output_Folder: /mnt/ceph/projects/sequences/analysed_data/behaviour_output
+Output_Folder: /mnt/g/My Drive/analysed_data/behaviour_output 
 ## TODO: chnage sessions_to_plot to a list of dates instead of session numbers format is YYYY-MM-DD
 Animals:
     SP108:

@@ -2,5 +2,6 @@
     "workbench.editorAssociations": {
         "*.ipynb": "jupyter.notebook.ipynb",
         "file:/**/*.csv": "jupyter-data-wrangler"
-    }
+    },
+    "remote.autoForwardPortsFallback": 0
 }
