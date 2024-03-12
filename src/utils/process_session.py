@@ -54,9 +54,13 @@ def get_session_details(output_folder, current_animal_id):
 
     # list all the sessions for the current animal
     sessions = os.listdir(os.path.join(output_folder, current_animal_id, 'Preprocessed'))
+    # ignore all files with .DS store
+    sessions = [session for session in sessions if not session.startswith('.')]
 
     # Loop through each filename and extract the information
     for session in sessions:
+        # debug print statement
+        # print(f'Processing session: {session}')
         parts = session.split('_')
         session_id = int(parts[0])  # Convert the session ID to an integer
         date_str = parts[1]
